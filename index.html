@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的博客</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">My Blog</a>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link active">首页</a></li>
+                <li><a href="about.html" class="nav-link">关于</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero">
+            <h1>欢迎来到我的博客</h1>
+            <p>记录生活，分享思考</p>
+        </section>
+
+        <section class="articles">
+            <h2>最新文章</h2>
+            <div class="article-list">
+                <div class="article-card" onclick="location.href='article.html?id=4'">
+                    <h3>Clawdbot 对接钉钉群机器人实战记录</h3>
+                    <p class="meta">2026-02-01</p>
+                    <p class="excerpt">本文记录了Clawdbot对接钉钉群机器人的完整过程，包括方案选择、遇到的问题以及最终解决方案。</p>
+                    <span class="read-more">阅读更多 →</span>
+                </div>
+                <div class="article-card" onclick="location.href='article.html?id=3'">
+                    <h3>5分钟搭建个人网盘 - FileBrowser 极简部署教程</h3>
+                    <p class="meta">2026-01-31</p>
+                    <p class="excerpt">本文介绍如何使用FileBrowser在5分钟内搭建一个轻量、美观的个人网盘，包含详细安装步骤和常见问题解答。</p>
+                    <span class="read-more">阅读更多 →</span>
+                </div>
+                <div class="article-card" onclick="location.href='article.html?id=1'">
+                    <h3>欢迎来到我的博客</h3>
+                    <p class="meta">2024-01-01</p>
+                    <p class="excerpt">这是一个新开的博客，用于记录我的生活和学习。</p>
+                    <span class="read-more">阅读更多 →</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 My Blog. All rights reserved.</p>
+    </footer>
+</body>
+</html>

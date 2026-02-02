@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章详情 - 我的博客</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">My Blog</a>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">首页</a></li>
+                <li><a href="about.html" class="nav-link">关于</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <a href="index.html" class="back-link">← 返回首页</a>
+        <article class="article-detail" id="articleContent">
+            <p>加载中...</p>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 My Blog. All rights reserved.</p>
+    </footer>
+
+    <script>
+        async function loadArticle() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            const content = document.getElementById('articleContent');
+            
+            if (!id) {
+                content.innerHTML = '<h1>请从首页选择文章查看</h1>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/articles');
+                const articles = await response.json();
+                const article = articles.find(a => a.id == id);
+                
+                if (article) {
+                    document.title = article.title + ' - 我的博客';
+                    content.innerHTML = '<h1>' + article.title + '</h1><p class="meta">发布于 ' + article.date + '</p><div class="content">' + article.content + '</div>';
+                } else {
+                    content.innerHTML = '<h1>文章不存在</h1>';
+                }
+            } catch (e) {
+                console.error(e);
+                content.innerHTML = '<h1>加载失败</h1>';
+            }
+        }
+        
+        loadArticle();
+    </script>
+</body>
+</html>
