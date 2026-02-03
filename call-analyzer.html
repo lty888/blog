@@ -7,13 +7,10 @@
     body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px}
     .header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:25px;text-align:center;border-radius:10px;margin-bottom:20px}
     .header h1{margin:0;font-size:24px}
-    .header p{margin:5px 0 0;font-size:14px;opacity:0.9}
     .card{background:white;border-radius:10px;padding:20px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
-    h3{margin:0 0 15px;font-size:16px;color:#333}
-    .drop-zone{border:2px dashed #ddd;border-radius:8px;padding:40px;text-align:center;cursor:pointer;margin-bottom:10px;transition:all 0.2s}
-    .drop-zone:hover{border-color:#667eea;background:rgba(102,126,234,0.03)}
-    .drop-zone p{margin:5px 0;color:#666}
-    .drop-zone .icon{font-size:32px}
+    h3{margin:0 0 15px;font-size:16px}
+    .drop-zone{border:2px dashed #ddd;border-radius:8px;padding:40px;text-align:center;cursor:pointer;margin-bottom:10px}
+    .drop-zone:hover{border-color:#667eea}
     .btn{padding:10px 18px;border:none;border-radius:6px;cursor:pointer;font-size:14px;margin-right:8px}
     .btn-primary{background:#667eea;color:white}
     .btn-secondary{background:#f0f0f0;color:#666}
@@ -25,24 +22,16 @@
     .stat-card .value{font-size:20px;font-weight:bold}
     .stat-card .label{font-size:11px;opacity:0.9}
     table{width:100%;border-collapse:collapse;font-size:13px}
-    th,td{padding:8px;text-align:left;border-bottom:1px solid #eee}
-    th{background:#f8f9fa;color:#666;font-weight:600}
+    th,td{padding:8px;border-bottom:1px solid #eee}
+    th{background:#f8f9fa;color:#666}
     .file-list{margin:10px 0}
-    .file-item{padding:6px 10px;background:#f8f9fa;border-radius:4px;margin-bottom:4px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
-    .file-item .name{color:#333}
-    .file-item .remove{color:#f5576c;cursor:pointer;padding:2px 8px}
-    .file-item .ok{color:#38ef7d;margin-right:8px}
+    .file-item{padding:6px 10px;background:#f8f9fa;border-radius:4px;margin-bottom:4px;font-size:13px}
     .hidden{display:none}
     .progress-wrap{margin:15px 0}
-    .progress-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
-    .progress-bar{height:12px;background:#eee;border-radius:6px;overflow:hidden}
-    .progress-fill{height:100%;background:#667eea;border-radius:6px;transition:width 0.2s}
-    .loading-wrap{text-align:center;padding:30px;color:#666}
-    .loading-wrap .spinner{width:24px;height:24px;border:2px solid #f3f3f3;border-top:2px solid #667eea;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px}
-    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-    .status-msg{font-size:13px;color:#888;margin-top:10px}
-    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#11998e,#38ef7d);color:white;padding:12px 24px;border-radius:8px;font-size:14px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.2);animation:fadeIn 0.3s}
-    @keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+    .progress-bar{height:12px;background:#eee;border-radius:6px}
+    .progress-fill{height:100%;background:#667eea;border-radius:6px}
+    .loading-wrap{text-align:center;padding:30px}
+    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#38ef7d;color:white;padding:12px 24px;border-radius:8px;font-size:14px;z-index:1000}
   </style>
 </head>
 <body>
@@ -55,7 +44,6 @@
     <div class="card">
       <h3>选择话单文件</h3>
       <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-        <div class="icon">📁</div>
         <p>点击选择文件（支持 CSV、XLS、XLSX）</p>
         <p style="font-size:12px;color:#999">可多选</p>
       </div>
@@ -70,102 +58,68 @@
 
   <div id="pageLoading" class="card hidden">
     <div class="loading-wrap">
-      <div class="spinner"></div>
-      <div id="loadingMsg">正在解析文件...</div>
+      <p id="loadingMsg">正在解析...</p>
     </div>
     <div class="progress-wrap">
-      <div class="progress-label">
-        <span id="progressFile">准备中</span>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+        <span id="progressFile">-</span>
         <span id="progressNum">0/0</span>
       </div>
       <div class="progress-bar">
         <div id="progressBar" class="progress-fill" style="width:0%"></div>
       </div>
     </div>
-    <div id="statusMsg" class="status-msg"></div>
   </div>
 
   <div id="pageResult" class="hidden">
     <div class="stats-grid">
-      <div class="stat-card">
-        <div class="value" id="resTotalCalls">-</div>
-        <div class="label">通话次数</div>
-      </div>
-      <div class="stat-card green">
-        <div class="value" id="resTotalDuration">-</div>
-        <div class="label">通话时长</div>
-      </div>
-      <div class="stat-card orange">
-        <div class="value" id="resAvgDuration">-</div>
-        <div class="label">平均时长</div>
-      </div>
-      <div class="stat-card blue">
-        <div class="value" id="resContacts">-</div>
-        <div class="label">联系人数</div>
-      </div>
+      <div class="stat-card"><div class="value" id="resCalls">-</div><div class="label">通话次数</div></div>
+      <div class="stat-card green"><div class="value" id="resDuration">-</div><div class="label">通话时长</div></div>
+      <div class="stat-card orange"><div class="value" id="resAvg">-</div><div class="label">平均时长</div></div>
+      <div class="stat-card blue"><div class="value" id="resContacts">-</div><div class="label">联系人数</div></div>
     </div>
-
-    <div class="card">
-      <h3>主叫/被叫分布</h3>
-      <p style="font-size:13px;margin:5px 0">主叫: <span id="resOutgoing">0 (0%)</span></p>
-      <div class="progress-bar" style="height:8px"><div id="barOutgoing" style="width:0%;height:100%;background:#4facfe;border-radius:4px"></div></div>
-      <p style="font-size:13px;margin:10px 0 5px">被叫: <span id="resIncoming">0 (0%)</span></p>
-      <div class="progress-bar" style="height:8px"><div id="barIncoming" style="width:0%;height:100%;background:#38ef7d;border-radius:4px"></div></div>
-    </div>
-
     <div class="card">
       <h3>联系人 TOP20</h3>
       <table>
-        <thead><tr><th>排名</th><th>号码</th><th>次数</th><th>时长</th><th>最后</th></tr></thead>
+        <thead><tr><th>排名</th><th>号码</th><th>次数</th><th>时长</th></tr></thead>
         <tbody id="resTable"></tbody>
       </table>
     </div>
-
-    <div style="text-align:center;margin-top:15px">
-      <button class="btn btn-secondary" onclick="backToImport()">重新分析</button>
+    <div style="text-align:center">
+      <button class="btn btn-secondary" onclick="back()">重新分析</button>
     </div>
   </div>
 
   <script src="analyzer.js"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0/package/dist/x0.20.lsx.full.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
   <script>
-    var gFiles = [];
-    var gAnalyzer = new CallAnalyzer();
-    var gCalls = [];
+    var files = [];
+    var analyzer = new CallAnalyzer();
+    var allCalls = [];
 
-    function showToast(msg) {
-      var toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.textContent = msg;
-      document.body.appendChild(toast);
-      setTimeout(function() { toast.remove(); }, 2500);
+    function toast(msg) {
+      var t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function(){t.remove();},2000);
     }
 
     function handleFiles() {
       var input = document.getElementById('fileInput');
       if (input.files.length > 0) {
-        gFiles = Array.from(input.files);
+        files = Array.from(input.files);
         var html = '';
-        for (var i = 0; i < gFiles.length; i++) {
-          html += '<div class="file-item"><span class="ok">✓</span><span class="name">' + gFiles[i].name + '</span><span class="remove" onclick="removeFile(' + i + ')">✕</span></div>';
+        for (var i = 0; i < files.length; i++) {
+          html += '<div class="file-item">' + files[i].name + '</div>';
         }
         document.getElementById('fileList').innerHTML = html;
-        showToast('已选择 ' + gFiles.length + ' 个文件');
+        toast('已选择 ' + files.length + ' 个文件');
       }
-    }
-
-    function removeFile(idx) {
-      gFiles.splice(idx, 1);
-      var html = '';
-      for (var i = 0; i < gFiles.length; i++) {
-        html += '<div class="file-item"><span class="ok">✓</span><span class="name">' + gFiles[i].name + '</span><span class="remove" onclick="removeFile(' + i + ')">✕</span></div>';
-      }
-      document.getElementById('fileList').innerHTML = html;
-      showToast('已移除文件，剩余 ' + gFiles.length + ' 个');
     }
 
     function clearFiles() {
-      gFiles = [];
+      files = [];
       document.getElementById('fileInput').value = '';
       document.getElementById('fileList').innerHTML = '';
     }
@@ -174,138 +128,107 @@
       document.getElementById('pageImport').className = 'hidden';
       document.getElementById('pageLoading').className = 'hidden';
       document.getElementById('pageResult').className = 'hidden';
-      if (id) document.getElementById(id).className = '';
+      document.getElementById(id).className = '';
     }
 
-    function backToImport() {
+    function back() {
       clearFiles();
       showPage('pageImport');
     }
 
-    function setProgress(percent, fileName, curr, total) {
-      document.getElementById('progressBar').style.width = percent + '%';
-      document.getElementById('progressNum').textContent = curr + '/' + total;
-      document.getElementById('progressFile').textContent = fileName || '完成';
-    }
-
     function startAnalyze() {
-      if (gFiles.length === 0) {
+      if (files.length === 0) {
         alert('请先选择文件');
         return;
       }
       
       showPage('pageLoading');
-      document.getElementById('loadingMsg').textContent = '正在解析...';
-      document.getElementById('statusMsg').textContent = '';
-      setProgress(0, '准备中', 0, gFiles.length);
-      
-      gCalls = [];
-      var total = gFiles.length;
+      allCalls = [];
       var idx = 0;
-
-      function doNext() {
+      var total = files.length;
+      
+      function next() {
         if (idx >= total) {
-          setProgress(100, '完成', total, total);
-          document.getElementById('loadingMsg').textContent = '解析完成！';
-          setTimeout(showResult, 300);
+          document.getElementById('loadingMsg').textContent = '完成！共 ' + allCalls.length + ' 条';
+          setTimeout(showResult, 500);
           return;
         }
         
-        var file = gFiles[idx];
-        var percent = Math.round((idx / total) * 100);
-        setProgress(percent, file.name, idx + 1, total);
+        var f = files[idx];
+        document.getElementById('progressNum').textContent = (idx+1) + '/' + total;
+        document.getElementById('progressFile').textContent = f.name;
+        document.getElementById('progressBar').style.width = ((idx/total)*100) + '%';
         
-        var ext = file.name.toLowerCase().split('.').pop();
+        var ext = f.name.toLowerCase().split('.').pop();
         
         if (ext === 'csv') {
-          readCSV(file, function(calls) {
-            gCalls = gCalls.concat(calls);
+          readCSV(f, function(calls) {
+            allCalls = allCalls.concat(calls);
             idx++;
-            doNext();
-          });
-        } else if (ext === 'xlsx' || ext === 'xls') {
-          readExcel(file, function(calls) {
-            gCalls = gCalls.concat(calls);
-            idx++;
-            doNext();
+            next();
           });
         } else {
-          readCSV(file, function(calls) {
-            gCalls = gCalls.concat(calls);
+          readExcel(f, function(calls) {
+            allCalls = allCalls.concat(calls);
             idx++;
-            doNext();
+            next();
           });
         }
       }
       
-      doNext();
+      next();
     }
 
-    function readCSV(file, callback) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
+    function readCSV(f, cb) {
+      var r = new FileReader();
+      r.onload = function(e) {
         try {
-          var calls = gAnalyzer.parseCSV(e.target.result);
-          callback(calls);
-        } catch (err) {
-          callback([]);
-        }
+          var c = analyzer.parseCSV(e.target.result);
+          cb(c);
+        } catch(err) { cb([]); }
       };
-      reader.onerror = function() { callback([]); };
-      reader.readAsText(file);
+      r.onerror = function() { cb([]); };
+      r.readAsText(f);
     }
 
-    function readExcel(file, callback) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
+    function readExcel(f, cb) {
+      var r = new FileReader();
+      r.onload = function(e) {
         try {
           var data = new Uint8Array(e.target.result);
-          var workbook = XLSX.read(data, {type: 'array'});
-          var sheet = workbook.Sheets[workbook.SheetNames[0]];
+          var wb = XLSX.read(data, {type: 'array'});
+          var sheet = wb.Sheets[wb.SheetNames[0]];
           var json = XLSX.utils.sheet_to_json(sheet, {header: 1});
-          var csv = json.map(function(row) {
-            return row.map(function(c) { return String(c || ''); }).join(',');
-          }).join('\n');
-          var calls = gAnalyzer.parseCSV(csv);
-          callback(calls);
-        } catch (err) {
-          callback([]);
-        }
+          var csv = json.map(function(row){return row.map(function(c){return String(c||'')}).join(',')}).join('\n');
+          var c = analyzer.parseCSV(csv);
+          cb(c);
+        } catch(err) { cb([]); }
       };
-      reader.onerror = function() { callback([]); };
-      reader.readAsArrayBuffer(file);
+      r.onerror = function() { cb([]); };
+      r.readAsArrayBuffer(f);
     }
 
     function showResult() {
       showPage('pageResult');
-      gAnalyzer.calls = gCalls;
+      analyzer.calls = allCalls;
       
-      var stats = gAnalyzer.getStatistics();
-      var contacts = gAnalyzer.getContactAnalysis();
+      var stats = analyzer.getStatistics();
+      var contacts = analyzer.getContactAnalysis();
       
-      document.getElementById('resTotalCalls').textContent = stats.totalCalls;
-      document.getElementById('resTotalDuration').textContent = stats.totalDuration;
-      document.getElementById('resAvgDuration').textContent = stats.avgDuration;
+      document.getElementById('resCalls').textContent = stats.totalCalls;
+      document.getElementById('resDuration').textContent = stats.totalDuration;
+      document.getElementById('resAvg').textContent = stats.avgDuration;
       document.getElementById('resContacts').textContent = contacts.totalContacts;
-      
-      var incoming = stats.callTypes.incoming;
-      var outgoing = stats.callTypes.outgoing;
-      var total = incoming + outgoing;
-      
-      document.getElementById('resIncoming').textContent = incoming + ' (' + (total ? Math.round(incoming/total*100) : 0) + '%)';
-      document.getElementById('resOutgoing').textContent = outgoing + ' (' + (total ? Math.round(outgoing/total*100) : 0) + '%)';
-      document.getElementById('barIncoming').style.width = total ? incoming/total*100 + '%' : '0%';
-      document.getElementById('barOutgoing').style.width = total ? outgoing/total*100 + '%' : '0%';
       
       var html = '';
       var list = contacts.topContacts.slice(0, 20);
       for (var i = 0; i < list.length; i++) {
         var c = list[i];
-        html += '<tr><td>' + (i+1) + '</td><td>' + c.phone + '</td><td>' + c.count + '</td><td>' + c.durationStr + '</td><td>' + (c.lastCall ? c.lastCall.split(' ')[0] : '-') + '</td></tr>';
+        html += '<tr><td>' + (i+1) + '</td><td>' + c.phone + '</td><td>' + c.count + '</td><td>' + c.durationStr + '</td></tr>';
       }
-      document.getElementById('resTable').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:#888">暂无数据</td></tr>';
+      document.getElementById('resTable').innerHTML = html || '<tr><td colspan="4" style="text-align:center">暂无数据</td></tr>';
       
-      showToast('分析完成！共 ' + gCalls.length + ' 条记录');
+      toast('分析完成！');
     }
   </script>
 </body>
