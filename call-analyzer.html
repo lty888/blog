@@ -4,15 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>话单分析工具</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; }
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
     .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; margin-bottom: 30px; border-radius: 0 0 20px 20px; }
     .header h1 { font-size: 28px; margin-bottom: 10px; }
+    .header p { font-size: 14px; opacity: 0.9; }
     .card { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    .card-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-    .drop-zone { border: 2px dashed #ddd; border-radius: 12px; padding: 50px 20px; text-align: center; cursor: pointer; transition: all 0.3s; }
+    .card-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+    .drop-zone { border: 2px dashed #ddd; border-radius: 12px; padding: 60px 20px; text-align: center; cursor: pointer; transition: all 0.3s; }
     .drop-zone:hover { border-color: #667eea; background: rgba(102, 126, 234, 0.05); }
     .drop-zone .icon { font-size: 48px; margin-bottom: 15px; }
     .drop-zone h3 { margin-bottom: 10px; }
@@ -26,102 +28,102 @@
     .stat-card .label { font-size: 14px; opacity: 0.9; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
-    th { background: #f8f9fa; font-weight: 600; color: #666; font-size: 13px; }
+    th { background: #f8f9fa; font-weight: 600; color: #666; }
     .tabs { display: flex; gap: 0; border-bottom: 2px solid #eee; margin-bottom: 20px; }
-    .tab { padding: 12px 24px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.3s; }
+    .tab { padding: 12px 24px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.3s; font-size: 14px; color: #666; }
     .tab:hover { color: #667eea; }
-    .tab.active { color: #667eea; border-bottom-color: #667eea; }
+    .tab.active { color: #667eea; border-bottom-color: #667eea; font-weight: 600; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     .hidden { display: none !important; }
-    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+    .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
     .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
     .btn-secondary { background: #f0f0f0; color: #666; }
-    .btn-group { display: flex; gap: 10px; margin-top: 20px; }
-    .hour-bars { display: flex; align-items: flex-end; height: 150px; gap: 3px; padding: 10px 0; }
-    .hour-bar { flex: 1; background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%); border-radius: 3px 3px 0 0; min-height: 2px; position: relative; }
-    .hour-bar:hover { opacity: 0.8; }
-    .hour-bar .tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; opacity: 0; transition: opacity 0.2s; }
-    .hour-bar:hover .tooltip { opacity: 1; }
-    .week-bars { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-group { display: flex; gap: 10px; margin-top: 20px; justify-content: center; }
+    .hour-bars { display: flex; align-items: flex-end; height: 150px; gap: 2px; padding: 10px 0; }
+    .hour-bar { flex: 1; background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%); border-radius: 2px 2px 0 0; min-height: 2px; }
+    .week-bars { display: flex; gap: 8px; margin-top: 20px; }
     .week-item { flex: 1; text-align: center; }
     .week-bar { height: 100px; background: #eee; border-radius: 6px; position: relative; overflow: hidden; }
-    .week-bar .fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); border-radius: 6px; transition: height 0.3s; }
+    .week-bar .fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); }
     .week-item .day { margin-top: 8px; font-size: 12px; color: #666; }
     .week-item .count { font-size: 11px; color: #888; }
     .progress-container { margin-top: 15px; }
-    .progress-item { margin-bottom: 15px; }
+    .progress-item { margin-bottom: 12px; }
     .progress-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
     .progress-bar { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
-    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .progress-fill { height: 100%; border-radius: 4px; }
     .progress-fill.blue { background: linear-gradient(90deg, #4facfe, #00f2fe); }
     .progress-fill.green { background: linear-gradient(90deg, #11998e, #38ef7d); }
+    .file-list { margin-top: 15px; }
+    .file-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px; }
+    .file-item .name { font-size: 13px; }
+    .file-item .remove { color: #f5576c; cursor: pointer; font-size: 12px; margin-left: 10px; }
+    .loading { text-align: center; padding: 40px; }
+    .loading .spinner { width: 40px; height: 40px; border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .notification { position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 8px; color: white; font-size: 14px; z-index: 1000; }
+    .notification.success { background: linear-gradient(135deg, #11998e, #38ef7d); }
+    .notification.error { background: linear-gradient(135deg, #f5576c, #f093fb); }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>📱 话单分析工具</h1>
-    <p>中国移动话单批量分析 - 通话统计、联系人分析、时间分析</p>
+    <h1>话单分析工具</h1>
+    <p>支持 CSV、XLS、XLSX 格式</p>
   </div>
   
   <div class="container">
-    <!-- 导入区域 -->
     <div class="card" id="importCard">
-      <div class="card-title">📁 导入话单</div>
-      <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+      <div class="card-title">导入话单</div>
+      <div class="drop-zone" id="dropZone">
         <div class="icon">📂</div>
-        <h3>点击选择话单文件</h3>
-        <p>支持选择多个 CSV 文件</p>
-        <p style="margin-top: 10px; color: #667eea;">或拖拽文件到此处</p>
+        <h3>点击选择文件</h3>
+        <p>支持 CSV、XLS、XLSX，可多选，可拖拽</p>
       </div>
-      <input type="file" id="fileInput" multiple accept=".csv" style="display: none;" onchange="handleFileSelect(event)">
+      <input type="file" id="fileInput" multiple accept=".csv,.xls,.xlsx" style="display: none;">
+      <div id="fileList" class="file-list"></div>
       <div class="btn-group">
-        <button class="btn btn-primary" onclick="startAnalysis()">🚀 开始分析</button>
-        <button class="btn btn-secondary" onclick="clearData()">🗑️ 清除数据</button>
+        <button class="btn btn-primary" id="analyzeBtn">🚀 开始分析</button>
+        <button class="btn btn-secondary" id="clearBtn">🗑️ 清除</button>
       </div>
     </div>
 
-    <!-- 统计区域 -->
+    <div class="card hidden" id="loadingArea">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>正在解析话单文件...</p>
+      </div>
+    </div>
+
     <div id="resultArea" class="hidden">
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="value" id="statTotalCalls">-</div>
-          <div class="label">总通话次数</div>
-        </div>
-        <div class="stat-card green">
-          <div class="value" id="statTotalDuration">-</div>
-          <div class="label">总通话时长</div>
-        </div>
-        <div class="stat-card orange">
-          <div class="value" id="statAvgDuration">-</div>
-          <div class="label">平均单次时长</div>
-        </div>
-        <div class="stat-card blue">
-          <div class="value" id="statContacts">-</div>
-          <div class="label">联系人数</div>
-        </div>
+        <div class="stat-card"><div class="value" id="statTotalCalls">-</div><div class="label">总通话次数</div></div>
+        <div class="stat-card green"><div class="value" id="statTotalDuration">-</div><div class="label">总通话时长</div></div>
+        <div class="stat-card orange"><div class="value" id="statAvgDuration">-</div><div class="label">平均单次时长</div></div>
+        <div class="stat-card blue"><div class="value" id="statContacts">-</div><div class="label">联系人数</div></div>
       </div>
 
       <div class="card">
-        <div class="card-title">📈 主叫/被叫分布</div>
+        <div class="card-title">主叫/被叫分布</div>
         <div class="progress-container">
           <div class="progress-item">
-            <div class="progress-label"><span>📴 主叫（打出）</span><span id="outgoingCount">0 次</span></div>
+            <div class="progress-label"><span>📴 主叫</span><span id="outgoingCount">0 (0%)</span></div>
             <div class="progress-bar"><div class="progress-fill blue" id="outgoingBar" style="width: 0%"></div></div>
           </div>
           <div class="progress-item">
-            <div class="progress-label"><span>📲 被叫（接听）</span><span id="incomingCount">0 次</span></div>
+            <div class="progress-label"><span>📲 被叫</span><span id="incomingCount">0 (0%)</span></div>
             <div class="progress-bar"><div class="progress-fill green" id="incomingBar" style="width: 0%"></div></div>
           </div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">👥 联系人分析</div>
+        <div class="card-title">联系人分析</div>
         <div class="tabs">
-          <div class="tab active" onclick="switchTab(this, 'frequency')">通话频次</div>
-          <div class="tab" onclick="switchTab(this, 'strangers')">陌生人识别</div>
-          <div class="tab" onclick="switchTab(this, 'frequent')">高频联系人</div>
+          <div class="tab active" data-tab="frequency">通话频次</div>
+          <div class="tab" data-tab="strangers">陌生人</div>
+          <div class="tab" data-tab="frequent">高频联系人</div>
         </div>
         <div class="tab-content active" id="tab-frequency">
           <table><thead><tr><th>排名</th><th>号码</th><th>次数</th><th>时长</th><th>最后通话</th></tr></thead><tbody id="frequencyTable"></tbody></table>
@@ -135,12 +137,12 @@
       </div>
 
       <div class="card">
-        <div class="card-title">⏰ 时间分析</div>
+        <div class="card-title">时间分析</div>
         <div class="stats-grid">
-          <div class="stat-card"><div class="value" id="peakHours">-</div><div class="label">通话高峰时段</div></div>
-          <div class="stat-card green"><div class="value" id="peakDay">-</div><div class="label">通话高峰日</div></div>
-          <div class="stat-card orange"><div class="value" id="nightCalls">-</div><div class="label">熬夜通话次数</div></div>
-          <div class="stat-card blue"><div class="value" id="nightRate">-</div><div class="label">熬夜通话占比</div></div>
+          <div class="stat-card"><div class="value" id="peakHours">-</div><div class="label">高峰时段</div></div>
+          <div class="stat-card green"><div class="value" id="peakDay">-</div><div class="label">高峰日</div></div>
+          <div class="stat-card orange"><div class="value" id="nightCalls">-</div><div class="label">熬夜次数</div></div>
+          <div class="stat-card blue"><div class="value" id="nightRate">-</div><div class="label">熬夜占比</div></div>
         </div>
         <h4 style="margin: 20px 0 15px;">📊 按小时分布</h4>
         <div class="hour-bars" id="hourBars"></div>
@@ -150,92 +152,170 @@
     </div>
   </div>
 
-  <script src="js/call-analyzer.js"></script>
+  <script src="analyzer.js"></script>
   <script>
-    let selectedFiles = [];
     const analyzer = new CallAnalyzer();
-
-    function handleFileSelect(e) {
+    let selectedFiles = [];
+    
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    
+    dropZone.onclick = function() { fileInput.click(); };
+    
+    fileInput.onchange = function(e) {
       const files = Array.from(e.target.files);
       if (files.length > 0) {
         selectedFiles = files;
-        alert(`已选择 ${files.length} 个文件`);
+        renderFileList();
+        showNotification('已选择 ' + files.length + ' 个文件', 'success');
       }
-    }
-
-    async function startAnalysis() {
+    };
+    
+    dropZone.ondragover = function(e) { e.preventDefault(); dropZone.style.borderColor = '#667eea'; };
+    dropZone.ondragleave = function() { dropZone.style.borderColor = '#ddd'; };
+    dropZone.ondrop = function(e) {
+      e.preventDefault();
+      dropZone.style.borderColor = '#ddd';
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        selectedFiles = files;
+        renderFileList();
+        showNotification('已选择 ' + files.length + ' 个文件', 'success');
+      }
+    };
+    
+    function renderFileList() {
+      const container = document.getElementById('fileList');
       if (selectedFiles.length === 0) {
-        alert('请先选择话单文件');
+        container.innerHTML = '';
         return;
       }
-      analyzer.calls = [];
-      for (const file of selectedFiles) {
-        const content = await file.text();
-        const tempFile = '/tmp/temp_' + file.name;
-        await fetch(tempFile, { method: 'PUT', body: content }).catch(() => {});
-        const fs = {
-          readFileSync: () => content,
-          existsSync: () => true
-        };
-        const tempAnalyzer = new CallAnalyzer();
-        tempAnalyzer.calls = tempAnalyzer.parseCSV(tempFile);
-        analyzer.calls.push(...tempAnalyzer.calls);
+      container.innerHTML = selectedFiles.map(function(file, i) {
+        return '<div class="file-item"><span class="name">📄 ' + file.name + '</span><span class="remove" onclick="removeFile(' + i + ')">✕</span></div>';
+      }).join('');
+    }
+    
+    function removeFile(i) {
+      selectedFiles.splice(i, 1);
+      renderFileList();
+    }
+    
+    function showNotification(msg, type) {
+      const n = document.createElement('div');
+      n.className = 'notification ' + type;
+      n.textContent = msg;
+      document.body.appendChild(n);
+      setTimeout(function() { n.remove(); }, 3000);
+    }
+    
+    document.getElementById('analyzeBtn').onclick = async function() {
+      if (selectedFiles.length === 0) {
+        showNotification('请先选择文件', 'error');
+        return;
       }
-      document.getElementById('resultArea').classList.remove('hidden');
+      
       document.getElementById('importCard').classList.add('hidden');
+      document.getElementById('loadingArea').classList.remove('hidden');
+      
+      analyzer.calls = [];
+      
+      for (const file of selectedFiles) {
+        try {
+          const data = await file.arrayBuffer();
+          const workbook = XLSX.read(data);
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+          const csv = json.map(function(row) {
+            return row.map(function(c) {
+              return String(c || '');
+            }).join(',');
+          }).join('\n');
+          const calls = analyzer.parseCSV(csv);
+          analyzer.calls.push.apply(analyzer.calls, calls);
+        } catch (e) {
+          console.error('解析失败:', file.name, e);
+        }
+      }
+      
+      document.getElementById('loadingArea').classList.add('hidden');
+      document.getElementById('resultArea').classList.remove('hidden');
+      
       loadStatistics();
       loadContacts();
       loadTimeAnalysis();
-    }
-
+      
+      showNotification('分析完成！共 ' + analyzer.calls.length + ' 条记录', 'success');
+    };
+    
+    document.getElementById('clearBtn').onclick = function() {
+      selectedFiles = [];
+      fileInput.value = '';
+      renderFileList();
+      document.getElementById('resultArea').classList.add('hidden');
+      document.getElementById('importCard').classList.remove('hidden');
+      analyzer.calls = [];
+      showNotification('已清除');
+    };
+    
     function loadStatistics() {
       const stats = analyzer.getStatistics();
+      const contacts = analyzer.getContactAnalysis();
       document.getElementById('statTotalCalls').textContent = stats.totalCalls + ' 次';
       document.getElementById('statTotalDuration').textContent = stats.totalDuration;
       document.getElementById('statAvgDuration').textContent = stats.avgDuration;
-      const contacts = analyzer.getContactAnalysis();
       document.getElementById('statContacts').textContent = contacts.totalContacts + ' 人';
+      
       const incoming = stats.callTypes.incoming;
       const outgoing = stats.callTypes.outgoing;
       const total = incoming + outgoing;
-      document.getElementById('incomingCount').textContent = `${incoming} 次 (${total > 0 ? Math.round(incoming/total*100) : 0}%)`;
-      document.getElementById('outgoingCount').textContent = `${outgoing} 次 (${total > 0 ? Math.round(outgoing/total*100) : 0}%)`;
-      document.getElementById('incomingBar').style.width = total > 0 ? `${incoming/total*100}%` : '0%';
-      document.getElementById('outgoingBar').style.width = total > 0 ? `${outgoing/total*100}%` : '0%';
+      
+      document.getElementById('incomingCount').textContent = incoming + ' (' + (total ? Math.round(incoming/total*100) : 0) + '%)';
+      document.getElementById('outgoingCount').textContent = outgoing + ' (' + (total ? Math.round(outgoing/total*100) : 0) + '%)';
+      document.getElementById('incomingBar').style.width = total ? incoming/total*100 + '%' : '0%';
+      document.getElementById('outgoingBar').style.width = total ? outgoing/total*100 + '%' : '0%';
     }
-
+    
     function loadContacts() {
       const contacts = analyzer.getContactAnalysis();
-      document.getElementById('frequencyTable').innerHTML = contacts.topContacts.slice(0, 20).map((c, i) => `<tr><td>${i+1}</td><td>${c.phone}</td><td>${c.count} 次</td><td>${c.durationStr}</td><td>${c.lastCall?.split(' ')[0] || '-'}</td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:#888">暂无数据</td></tr>';
-      document.getElementById('strangerTable').innerHTML = contacts.strangerList.map(c => `<tr><td>${c.phone}</td><td>${c.durationStr}</td><td>${c.lastCall?.split(' ')[0] || '-'}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:#888">暂无陌生人</td></tr>';
-      document.getElementById('frequentTable').innerHTML = contacts.frequentList.map(c => `<tr><td>${c.phone}</td><td>${c.count} 次</td><td>${c.durationStr}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:#888">暂无高频联系人</td></tr>';
+      document.getElementById('frequencyTable').innerHTML = contacts.topContacts.slice(0, 20).map(function(c, i) {
+        return '<tr><td>' + (i+1) + '</td><td>' + c.phone + '</td><td>' + c.count + ' 次</td><td>' + c.durationStr + '</td><td>' + (c.lastCall ? c.lastCall.split(' ')[0] : '-') + '</td></tr>';
+      }).join('') || '<tr><td colspan="5" style="text-align:center;color:#888">暂无数据</td></tr>';
+      
+      document.getElementById('strangerTable').innerHTML = contacts.strangerList.map(function(c) {
+        return '<tr><td>' + c.phone + '</td><td>' + c.durationStr + '</td><td>' + (c.lastCall ? c.lastCall.split(' ')[0] : '-') + '</td></tr>';
+      }).join('') || '<tr><td colspan="3" style="text-align:center;color:#888">暂无陌生人</td></tr>';
+      
+      document.getElementById('frequentTable').innerHTML = contacts.frequentList.map(function(c) {
+        return '<tr><td>' + c.phone + '</td><td>' + c.count + ' 次</td><td>' + c.durationStr + '</td></tr>';
+      }).join('') || '<tr><td colspan="3" style="text-align:center;color:#888">暂无高频联系人</td></tr>';
     }
-
+    
     function loadTimeAnalysis() {
       const time = analyzer.getTimeAnalysis();
       document.getElementById('peakHours').textContent = time.peakHours.join('、') || '-';
       document.getElementById('peakDay').textContent = time.peakDay || '-';
       document.getElementById('nightCalls').textContent = time.nightCalls + ' 次';
       document.getElementById('nightRate').textContent = time.nightRate + '%';
-      const maxHour = Math.max(...time.hourDistribution);
-      document.getElementById('hourBars').innerHTML = time.hourDistribution.map((count, hour) => `<div class="hour-bar" style="height:${maxHour > 0 ? (count/maxHour*100) : 0}%"><div class="tooltip">${hour}:00 - ${count}次</div></div>`).join('');
-      const maxDay = Math.max(...time.dayDistribution.map(d => d.count));
-      document.getElementById('weekBars').innerHTML = time.dayDistribution.map(d => `<div class="week-item"><div class="week-bar"><div class="fill" style="height:${maxDay > 0 ? (d.count/maxDay*100) : 0}%"></div></div><div class="day">${d.day}</div><div class="count">${d.count}次</div></div>`).join('');
+      
+      const maxHour = Math.max.apply(null, time.hourDistribution) || 1;
+      document.getElementById('hourBars').innerHTML = time.hourDistribution.map(function(count, hour) {
+        return '<div class="hour-bar" style="height:' + (count/maxHour*100) + '%"></div>';
+      }).join('');
+      
+      const maxDay = Math.max.apply(null, time.dayDistribution.map(function(d) { return d.count; })) || 1;
+      document.getElementById('weekBars').innerHTML = time.dayDistribution.map(function(d) {
+        return '<div class="week-item"><div class="week-bar"><div class="fill" style="height:' + (d.count/maxDay*100) + '%"></div></div><div class="day">' + d.day + '</div><div class="count">' + d.count + '次</div></div>';
+      }).join('');
     }
-
-    function switchTab(el, tabId) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      el.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-' + tabId).classList.add('active');
-    }
-
-    function clearData() {
-      selectedFiles = [];
-      document.getElementById('fileInput').value = '';
-      document.getElementById('resultArea').classList.add('hidden');
-      document.getElementById('importCard').classList.remove('hidden');
-    }
+    
+    document.querySelectorAll('.tab').forEach(function(tab) {
+      tab.onclick = function() {
+        document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      };
+    });
   </script>
 </body>
 </html>
