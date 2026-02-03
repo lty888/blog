@@ -3,105 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <title>话单分析工具</title>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
   <style>
     body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px}
-    .header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:30px;text-align:center;border-radius:10px 10px 0 0;margin-bottom:20px}
-    .header h1{margin:0 0 10px}
+    .header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:30px;text-align:center;border-radius:10px;margin-bottom:20px}
+    .header h1{margin:0}
     .card{background:white;border-radius:10px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
     .drop-zone{border:2px dashed #ddd;border-radius:10px;padding:50px;text-align:center;cursor:pointer;margin-bottom:15px}
     .drop-zone:hover{border-color:#667eea;background:rgba(102,126,234,0.05)}
     .btn{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:14px;margin-right:10px}
-    .btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:white}
+    .btn-primary{background:#667eea;color:white}
     .btn-secondary{background:#f0f0f0;color:#666}
     .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px}
     .stat-card{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px;border-radius:10px;text-align:center}
     .stat-card.green{background:linear-gradient(135deg,#11998e,#38ef7d)}
     .stat-card.orange{background:linear-gradient(135deg,#f093fb,#f5576c)}
     .stat-card.blue{background:linear-gradient(135deg,#4facfe,#00f2fe)}
-    .stat-card .value{font-size:24px;font-weight:bold;margin-bottom:5px}
+    .stat-card .value{font-size:24px;font-weight:bold}
     .stat-card .label{font-size:12px;opacity:0.9}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:10px;text-align:left;border-bottom:1px solid #eee}
-    th{background:#f8f9fa;font-weight:600;color:#666}
-    .tabs{display:flex;border-bottom:2px solid #eee;margin-bottom:15px}
-    .tab{padding:10px 20px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px}
-    .tab.active{color:#667eea;border-bottom-color:#667eea;font-weight:600}
-    .tab-content{display:none}
-    .tab-content.active{display:block}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid #eee}
+    th{background:#f8f9fa;color:#666}
     .hidden{display:none}
-    .file-list{margin-top:10px}
-    .file-item{padding:8px 15px;background:#f8f9fa;border-radius:5px;margin-bottom:5px;display:flex;justify-content:space-between}
-    .progress-bar{height:8px;background:#eee;border-radius:4px;overflow:hidden;margin-bottom:10px}
+    .file-list{margin:10px 0}
+    .file-item{padding:8px;background:#f8f9fa;border-radius:5px5px}
+   ;margin-bottom: .progress-bar{height:8px;background:#eee;border-radius:4px;margin:10px 0}
     .progress-fill{height:100%;border-radius:4px}
-    .progress-fill.blue{background:linear-gradient(90deg,#4facfe,#00f2fe)}
-    .progress-fill.green{background:linear-gradient(90deg,#11998e,#38ef7d)}
+    .progress-fill.blue{background:#4facfe}
+    .progress-fill.green{background:#38ef7d}
   </style>
 </head>
 <body>
   <div class="header">
     <h1>话单分析工具</h1>
-    <p>支持 CSV、XLS、XLSX 格式</p>
+    <p>仅支持 CSV 格式</p>
   </div>
   
   <div class="card" id="importCard">
     <h3>导入话单</h3>
     <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-      <p style="font-size:16px;margin-bottom:10px">📂 点击选择文件</p>
-      <p style="color:#888;font-size:14px">支持 CSV、XLS、XLSX，可多选</p>
+      <p>📂 点击选择 CSV 文件</p>
+      <p style="color:#888">仅支持 CSV 格式</p>
     </div>
-    <input type="file" id="fileInput" multiple accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFiles()">
+    <input type="file" id="fileInput" multiple accept=".csv" style="display:none" onchange="handleFiles()">
     <div id="fileList" class="file-list"></div>
-    <button class="btn btn-primary" onclick="analyze()">🚀 开始分析</button>
-    <button class="btn btn-secondary" onclick="clearFiles()">🗑️ 清除</button>
+    <button class="btn btn-primary" onclick="analyze()">开始分析</button>
+    <button class="btn btn-secondary" onclick="clearFiles()">清除</button>
   </div>
 
   <div class="card hidden" id="loadingCard">
-    <p style="text-align:center;padding:30px">正在解析文件...</p>
+    <p id="loadingText" style="text-align:center;padding:30px">正在解析...</p>
   </div>
 
   <div id="resultArea" class="hidden">
     <div class="stats-grid">
       <div class="stat-card"><div class="value" id="totalCalls">-</div><div class="label">总通话次数</div></div>
       <div class="stat-card green"><div class="value" id="totalDuration">-</div><div class="label">总通话时长</div></div>
-      <div class="stat-card orange"><div class="value" id="avgDuration">-</div><div class="label">平均单次时长</div></div>
+      <div class="stat-card orange"><div class="value" id="avgDuration">-</div><div class="label">平均时长</div></div>
       <div class="stat-card blue"><div class="value" id="totalContacts">-</div><div class="label">联系人数</div></div>
     </div>
 
     <div class="card">
       <h3>主叫/被叫分布</h3>
-      <p><span>📴 主叫</span> <span id="outgoingText">0 (0%)</span></p>
+      <p>主叫: <span id="outgoingText">0 (0%)</span></p>
       <div class="progress-bar"><div class="progress-fill blue" id="outgoingBar" style="width:0%"></div></div>
-      <p><span>📲 被叫</span> <span id="incomingText">0 (0%)</span></p>
+      <p>被叫: <span id="incomingText">0 (0%)</span></p>
       <div class="progress-bar"><div class="progress-fill green" id="incomingBar" style="width:0%"></div></div>
     </div>
 
     <div class="card">
-      <h3>联系人分析</h3>
-      <div class="tabs">
-        <div class="tab active" onclick="showTab('frequency',this)">通话频次</div>
-        <div class="tab" onclick="showTab('strangers',this)">陌生人</div>
-        <div class="tab" onclick="showTab('frequent',this)">高频联系人</div>
-      </div>
-      <div id="tab-frequency" class="tab-content active">
-        <table><thead><tr><th>排名</th><th>号码</th><th>次数</th><th>时长</th><th>最后通话</th></tr></thead><tbody id="frequencyBody"></tbody></table>
-      </div>
-      <div id="tab-strangers" class="tab-content">
-        <table><thead><tr><th>号码</th><th>时长</th><th>日期</th></tr></thead><tbody id="strangerBody"></tbody></table>
-      </div>
-      <div id="tab-frequent" class="tab-content">
-        <table><thead><tr><th>号码</th><th>次数</th><th>时长</th></tr></thead><tbody id="frequentBody"></tbody></table>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>时间分析</h3>
-      <div class="stats-grid">
-        <div class="stat-card"><div class="value" id="peakHours">-</div><div class="label">高峰时段</div></div>
-        <div class="stat-card green"><div class="value" id="peakDay">-</div><div class="label">高峰日</div></div>
-        <div class="stat-card orange"><div class="value" id="nightCalls">-</div><div class="label">熬夜次数</div></div>
-        <div class="stat-card blue"><div class="value" id="nightRate">-</div><div class="label">熬夜占比</div></div>
-      </div>
+      <h3>联系人 TOP20</h3>
+      <table>
+        <thead><tr><th>排名</th><th>号码</th><th>次数</th><th>时长</th><th>最后通话</th></tr></thead>
+        <tbody id="contactTable"></tbody>
+      </table>
     </div>
   </div>
 
@@ -114,43 +88,22 @@
       var input = document.getElementById('fileInput');
       if (input.files.length > 0) {
         selectedFiles = Array.from(input.files);
-        renderFileList();
+        var html = '';
+        for (var i = 0; i < selectedFiles.length; i++) {
+          html += '<div class="file-item">' + selectedFiles[i].name + '</div>';
+        }
+        document.getElementById('fileList').innerHTML = html;
       }
-    }
-
-    function renderFileList() {
-      var container = document.getElementById('fileList');
-      if (selectedFiles.length === 0) {
-        container.innerHTML = '';
-        return;
-      }
-      container.innerHTML = selectedFiles.map(function(f, i) {
-        return '<div class="file-item"><span>' + f.name + '</span><span style="color:#f5576c;cursor:pointer" onclick="removeFile(' + i + ')">✕</span></div>';
-      }).join('');
-    }
-
-    function removeFile(i) {
-      selectedFiles.splice(i, 1);
-      document.getElementById('fileInput').value = '';
-      renderFileList();
     }
 
     function clearFiles() {
       selectedFiles = [];
       document.getElementById('fileInput').value = '';
-      renderFileList();
+      document.getElementById('fileList').innerHTML = '';
       document.getElementById('resultArea').className = 'hidden';
-      document.getElementById('importCard').className = 'card';
     }
 
-    function showTab(tabId, el) {
-      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-      document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
-      el.classList.add('active');
-      document.getElementById('tab-' + tabId).classList.add('active');
-    }
-
-    async function analyze() {
+    function analyze() {
       if (selectedFiles.length === 0) {
         alert('请先选择文件');
         return;
@@ -161,65 +114,55 @@
       
       analyzer.calls = [];
       
-      for (var i = 0; i < selectedFiles.length; i++) {
-        var file = selectedFiles[i];
+      var reader = new FileReader();
+      reader.onload = function(e) {
         try {
-          var data = await file.arrayBuffer();
-          var workbook = XLSX.read(data);
-          var sheet = workbook.Sheets[workbook.SheetNames[0]];
-          var json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-          var csv = json.map(function(row) {
-            return row.map(function(c) { return String(c || ''); }).join(',');
-          }).join('\n');
-          var calls = analyzer.parseCSV(csv);
-          for (var j = 0; j < calls.length; j++) {
-            analyzer.calls.push(calls[j]);
+          var content = e.target.result;
+          var calls = analyzer.parseCSV(content);
+          for (var i = 0; i < calls.length; i++) {
+            analyzer.calls.push(calls[i]);
           }
-        } catch (e) {
-          console.error('解析失败:', file.name, e);
+          
+          // 显示结果
+          var stats = analyzer.getStatistics();
+          var contacts = analyzer.getContactAnalysis();
+          
+          document.getElementById('totalCalls').textContent = stats.totalCalls;
+          document.getElementById('totalDuration').textContent = stats.totalDuration;
+          document.getElementById('avgDuration').textContent = stats.avgDuration;
+          document.getElementById('totalContacts').textContent = contacts.totalContacts;
+          
+          var incoming = stats.callTypes.incoming;
+          var outgoing = stats.callTypes.outgoing;
+          var total = incoming + outgoing;
+          document.getElementById('incomingText').textContent = incoming + ' (' + (total ? Math.round(incoming/total*100) : 0) + '%)';
+          document.getElementById('outgoingText').textContent = outgoing + ' (' + (total ? Math.round(outgoing/total*100) : 0) + '%)';
+          document.getElementById('incomingBar').style.width = total ? incoming/total*100 + '%' : '0%';
+          document.getElementById('outgoingBar').style.width = total ? outgoing/total*100 + '%' : '0%';
+          
+          var html = '';
+          var topContacts = contacts.topContacts.slice(0, 20);
+          for (var i = 0; i < topContacts.length; i++) {
+            var c = topContacts[i];
+            html += '<tr><td>' + (i+1) + '</td><td>' + c.phone + '</td><td>' + c.count + '</td><td>' + c.durationStr + '</td><td>' + (c.lastCall ? c.lastCall.split(' ')[0] : '-') + '</td></tr>';
+          }
+          document.getElementById('contactTable').innerHTML = html || '<tr><td colspan="5" style="text-align:center">暂无数据</td></tr>';
+          
+          document.getElementById('loadingCard').className = 'hidden';
+          document.getElementById('resultArea').className = '';
+          
+          alert('分析完成！共 ' + analyzer.calls.length + ' 条记录');
+        } catch (err) {
+          document.getElementById('loadingText').textContent = '解析失败: ' + err.message;
         }
-      }
-
-      document.getElementById('loadingCard').className = 'hidden';
-      document.getElementById('resultArea').className = '';
-
-      // 显示统计
-      var stats = analyzer.getStatistics();
-      var contacts = analyzer.getContactAnalysis();
-      document.getElementById('totalCalls').textContent = stats.totalCalls + ' 次';
-      document.getElementById('totalDuration').textContent = stats.totalDuration;
-      document.getElementById('avgDuration').textContent = stats.avgDuration;
-      document.getElementById('totalContacts').textContent = contacts.totalContacts + ' 人';
-
-      var incoming = stats.callTypes.incoming;
-      var outgoing = stats.callTypes.outgoing;
-      var total = incoming + outgoing;
-      document.getElementById('incomingText').textContent = incoming + ' (' + (total ? Math.round(incoming/total*100) : 0) + '%)';
-      document.getElementById('outgoingText').textContent = outgoing + ' (' + (total ? Math.round(outgoing/total*100) : 0) + '%)';
-      document.getElementById('incomingBar').style.width = total ? incoming/total*100 + '%' : '0%';
-      document.getElementById('outgoingBar').style.width = total ? outgoing/total*100 + '%' : '0%';
-
-      // 联系人
-      document.getElementById('frequencyBody').innerHTML = contacts.topContacts.slice(0,20).map(function(c, i) {
-        return '<tr><td>' + (i+1) + '</td><td>' + c.phone + '</td><td>' + c.count + ' 次</td><td>' + c.durationStr + '</td><td>' + (c.lastCall ? c.lastCall.split(' ')[0] : '-') + '</td></tr>';
-      }).join('') || '<tr><td colspan="5" style="text-align:center;color:#888">暂无数据</td></tr>';
-
-      document.getElementById('strangerBody').innerHTML = contacts.strangerList.map(function(c) {
-        return '<tr><td>' + c.phone + '</td><td>' + c.durationStr + '</td><td>' + (c.lastCall ? c.lastCall.split(' ')[0] : '-') + '</td></tr>';
-      }).join('') || '<tr><td colspan="3" style="text-align:center;color:#888">暂无陌生人</td></tr>';
-
-      document.getElementById('frequentBody').innerHTML = contacts.frequentList.map(function(c) {
-        return '<tr><td>' + c.phone + '</td><td>' + c.count + ' 次</td><td>' + c.durationStr + '</td></tr>';
-      }).join('') || '<tr><td colspan="3" style="text-align:center;color:#888">暂无高频联系人</td></tr>';
-
-      // 时间
-      var time = analyzer.getTimeAnalysis();
-      document.getElementById('peakHours').textContent = time.peakHours.join('、') || '-';
-      document.getElementById('peakDay').textContent = time.peakDay || '-';
-      document.getElementById('nightCalls').textContent = time.nightCalls + ' 次';
-      document.getElementById('nightRate').textContent = time.nightRate + '%';
-
-      alert('分析完成！共 ' + analyzer.calls.length + ' 条记录');
+      };
+      
+      reader.onerror = function() {
+        document.getElementById('loadingText').textContent = '读取文件失败';
+      };
+      
+      // 只读取第一个文件
+      reader.readAsText(selectedFiles[0]);
     }
   </script>
 </body>
