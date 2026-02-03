@@ -1,10 +1,17 @@
 [
   {
-    "id": 1,
-    "title": "欢迎来到我的博客",
-    "date": "2024-01-01",
-    "excerpt": "这是一个新开的博客，用于记录我的生活和学习。",
-    "content": "<p>欢迎来到我的个人博客！</p>"
+    "title": "使用 Node.js 监控 XAUUSD 价格并自动提醒",
+    "date": "2026-02-03",
+    "excerpt": "本文介绍如何用 Node.js 脚本监控黄金价格，当价格跌破指定阈值时自动发送提醒通知。",
+    "content": "<h2>前言</h2>\n<p>黄金（XAUUSD）价格波动较大，我们希望能够实时监控价格，当价格跌破某个阈值时自动发出提醒。本文将介绍如何使用 Node.js 免费 API 实现这个功能。</p>\n\n<h2>准备工作</h2>\n<p>我们需要：</p>\n<ul>\n<li>Node.js 环境</li>\n<li>免费的价格 API：gold-api.com</li>\n<li>系统 crontab 定时任务</li>\n<li>Clawdbot 心跳通知</li>\n</ul>\n\n<h2>第一步：获取价格 API</h2>\n<p>使用 gold-api.com 的免费接口获取 XAUUSD 实时价格：</p>\n<pre><code>curl https://api.gold-api.com/price/XAU</code></pre>\n<p>返回结果：</p>\n<pre><code>{\"name\":\"Gold\",\"price\":4771.799805,\"symbol\":\"XAU\",\"updatedAt\":\"2026-02-03T03:12:09Z\"}</parameter>\n\n<h2>第二步：创建监控脚本</h2>\n<p>创建 <code>monitor-xau-alert.js</code>：</p>\n<pre><code>const https = require('https');\nconst fs = require('fs');\n\nconst PRICE_FILE = '/tmp/xau-alert.json';\nconst THRESHOLD = 4500;\n\nasync function checkPrice() {\n  try {\n    const data = await new Promise((resolve, reject) => {\n      https.get('https://api.gold-api.com/price/XAU', (res) => {\n        let body = '';\n        res.on('data', chunk => body += chunk);\n        res.on('end', () => resolve(JSON.parse(body)));\n      }).on('error', reject);\n    });\n    \n    const price = data.price;\n    const now = new Date().toISOString();\n    \n    console.log(`[${now}] XAU/USD: $${price.toFixed(2)}`);\n    \n    if (price < THRESHOLD) {\n      const alertData = {\n        price: price,\n        time: now,\n        notified: false\n      };\n      fs.writeFileSync(PRICE_FILE, JSON.stringify(alertData, null, 2));\n      console.log('⚠️ PRICE DROP DETECTED!');\n    }\n  } catch (e) {\n    console.error('Error:', e.message);\n  }\n}\n\ncheckPrice();</code></pre>\n\n<h2>第三步：设置定时任务</h2>\n<p>使用 crontab 每分钟执行一次监控脚本：</p>\n<pre><code>*/1 * * * * /usr/bin/node /root/clawd/monitor-xau-alert.js >> /tmp/xau-monitor.log 2>&1</code></pre>\n\n<h2>第四步：配置 Clawdbot 通知</h2>\n<p>创建心跳检测脚本 <code>check-xau-alert.js</code>：</p>\n<pre><code>const fs = require('fs');\nconst PRICE_FILE = '/tmp/xau-alert.json';\n\nif (fs.existsSync(PRICE_FILE)) {\n  const alert = JSON.parse(fs.readFileSync(PRICE_FILE));\n  if (!alert.notified && alert.price) {\n    console.log(`🚨 XAUUSD 价格警报！\\n当前价格: $${alert.price}\\n时间: ${alert.time}`);\n    alert.notified = true;\n    fs.writeFileSync(PRICE_FILE, JSON.stringify(alert, null, 2));\n  }\n}</code></pre>\n\n<h2>运行效果</h2>\n<p>在 Clawdbot 心跳中运行此脚本，当价格跌破 $4500 时会自动收到通知：</p>\n<img src=\"screenshot-monitor.png\" alt=\"监控运行截图\" />\n\n<h2>总结</h2>\n<p>通过以上步骤，我们实现了一个轻量级的 XAUUSD 价格监控系统：</p>\n<ul>\n<li>✅ 免费 API，无需付费</li>\n<li>✅ 每分钟自动检查</li>\n<li>✅ 价格跌破阈值时自动提醒</li>\n<li>✅ 低资源消耗，不占用大量 token</li>\n</ul>\n\n<p>项目源码已开源：<a href=\"https://github.com/lty888/blog\">GitHub - lty888/blog</a></p>",
+    "id": 1
+  },
+  {
+    "id": 2,
+    "title": "Clawdbot 对接钉钉群机器人实战记录",
+    "date": "2026-02-01",
+    "excerpt": "本文记录了Clawdbot对接钉钉群机器人的完整过程，包括方案选择、遇到的问题以及最终解决方案。",
+    "content": "<h2>前言</h2><p>近期尝试为Clawdbot增加钉钉群机器人对接功能，实现与Telegram类似的消息收发体验。本文记录整个对接过程的详细步骤、遇到的问题以及最终的解决方案。</p><h2>需求分析</h2><p>目标是实现：</p><ul><li>在Clawdbot中发送消息到钉钉群</li><li>在钉钉群中发送消息，Clawdbot能够接收并回复</li><li>操作方式与Telegram类似</li></ul><h2>方案选择</h2><p>钉钉机器人对接有两种主要方案：</p><ol><li><strong>简单webhook方案</strong>：快速实现发送功能，接收功能受限</li><li><strong>完整回调方案</strong>：支持双向通信，但配置复杂</li></ol><h2>实施过程</h2><h3>第一步：创建钉钉机器人</h3><p>在钉钉群中创建自定义机器人：</p><ol><li>进入群设置 → 智能群助手 → 添加机器人</li><li>选择「自定义机器人」</li><li>设置机器人名称为「clawd」</li><li>选择安全设置（加签或自定义关键词）</li><li>获取Webhook URL和加签密钥</li></ol><h3>第二步：开发发送服务</h3><p>创建Node.js脚本实现消息发送，包含加签算法。</p><h3>第三步：测试发送功能</h3><p>成功实现消息发送。</p><h3>第四步：尝试接收功能</h3><p>钉钉个人版的回调功能受限，无法实现完整的双向通信。</p><h2>遇到的问题</h2><h3>问题1：加签验证</h3><p>初始发送失败，需要实现加签算法。</p><h3>问题2：回调功能受限</h3><p>钉钉个人版的回调功能受限，无法实现双向通信。</p><h2>方案1与方案2的选择</h2><p>由于钉钉个人版限制，最终选择了方案1（简单webhook），实现了发送功能。</p><h3>方案1（简单webhook）</h3><ul><li>优点：快速实现</li><li>缺点：只能发送，无法接收</li></ul><h3>方案2（完整回调）</h3><ul><li>优点：支持双向通信</li><li>缺点：需要企业版、配置复杂</li></ul><h2>总结</h2><p>本次对接成功实现了从Clawdbot发送消息到钉钉群的功能。</p><p><strong>已实现</strong>：从Clawdbot发送消息到钉钉群</p><p><strong>待实现</strong>：从钉钉群接收消息并回复（需要钉钉企业版）</p><p><strong>替代方案</strong>：定时推送、手动触发发送消息</p>"
   },
   {
     "id": 3,
@@ -15,9 +22,9 @@
   },
   {
     "id": 4,
-    "title": "Clawdbot 对接钉钉群机器人实战记录",
-    "date": "2026-02-01",
-    "excerpt": "本文记录了Clawdbot对接钉钉群机器人的完整过程，包括方案选择、遇到的问题以及最终解决方案。",
-    "content": "<h2>前言</h2><p>近期尝试为Clawdbot增加钉钉群机器人对接功能，实现与Telegram类似的消息收发体验。本文记录整个对接过程的详细步骤、遇到的问题以及最终的解决方案。</p><h2>需求分析</h2><p>目标是实现：</p><ul><li>在Clawdbot中发送消息到钉钉群</li><li>在钉钉群中发送消息，Clawdbot能够接收并回复</li><li>操作方式与Telegram类似</li></ul><h2>方案选择</h2><p>钉钉机器人对接有两种主要方案：</p><ol><li><strong>简单webhook方案</strong>：快速实现发送功能，接收功能受限</li><li><strong>完整回调方案</strong>：支持双向通信，但配置复杂</li></ol><h2>实施过程</h2><h3>第一步：创建钉钉机器人</h3><p>在钉钉群中创建自定义机器人：</p><ol><li>进入群设置 → 智能群助手 → 添加机器人</li><li>选择「自定义机器人」</li><li>设置机器人名称为「clawd」</li><li>选择安全设置（加签或自定义关键词）</li><li>获取Webhook URL和加签密钥</li></ol><h3>第二步：开发发送服务</h3><p>创建Node.js脚本实现消息发送，包含加签算法。</p><h3>第三步：测试发送功能</h3><p>成功实现消息发送。</p><h3>第四步：尝试接收功能</h3><p>钉钉个人版的回调功能受限，无法实现完整的双向通信。</p><h2>遇到的问题</h2><h3>问题1：加签验证</h3><p>初始发送失败，需要实现加签算法。</p><h3>问题2：回调功能受限</h3><p>钉钉个人版的回调功能受限，无法实现双向通信。</p><h2>方案1与方案2的选择</h2><p>由于钉钉个人版限制，最终选择了方案1（简单webhook），实现了发送功能。</p><h3>方案1（简单webhook）</h3><ul><li>优点：快速实现</li><li>缺点：只能发送，无法接收</li></ul><h3>方案2（完整回调）</h3><ul><li>优点：支持双向通信</li><li>缺点：需要企业版、配置复杂</li></ul><h2>总结</h2><p>本次对接成功实现了从Clawdbot发送消息到钉钉群的功能。</p><p><strong>已实现</strong>：从Clawdbot发送消息到钉钉群</p><p><strong>待实现</strong>：从钉钉群接收消息并回复（需要钉钉企业版）</p><p><strong>替代方案</strong>：定时推送、手动触发发送消息</p>"
+    "title": "欢迎来到我的博客",
+    "date": "2024-01-01",
+    "excerpt": "这是一个新开的博客，用于记录我的生活和学习。",
+    "content": "<p>欢迎来到我的个人博客！</p>"
   }
 ]
