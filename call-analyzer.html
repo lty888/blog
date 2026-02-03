@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>话单分析工具</title>
+  <script src="analyzer.js"></script>
   <style>
     body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px}
     .header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:30px;text-align:center;border-radius:10px;margin-bottom:20px}
@@ -25,33 +26,34 @@
     th{background:#f8f9fa;color:#666}
     .hidden{display:none}
     .file-list{margin:10px 0}
-    .file-item{padding:8px;background:#f8f9fa;border-radius:5px5px}
-   ;margin-bottom: .progress-bar{height:8px;background:#eee;border-radius:4px;margin:10px 0}
+    .file-item{padding:8px;background:#f8f9fa;border-radius:5px;margin-bottom:5px}
+    .progress-bar{height:8px;background:#eee;border-radius:4px;margin:10px 0}
     .progress-fill{height:100%;border-radius:4px}
     .progress-fill.blue{background:#4facfe}
     .progress-fill.green{background:#38ef7d}
+    #loadingText{padding:40px;text-align:center;color:#666}
   </style>
 </head>
 <body>
   <div class="header">
     <h1>话单分析工具</h1>
-    <p>仅支持 CSV 格式</p>
+    <p>支持 CSV、XLS、XLSX 格式</p>
   </div>
   
   <div class="card" id="importCard">
     <h3>导入话单</h3>
     <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-      <p>📂 点击选择 CSV 文件</p>
-      <p style="color:#888">仅支持 CSV 格式</p>
+      <p>📂 点击选择文件</p>
+      <p style="color:#888">支持 CSV、XLS、XLSX 格式</p>
     </div>
-    <input type="file" id="fileInput" multiple accept=".csv" style="display:none" onchange="handleFiles()">
+    <input type="file" id="fileInput" multiple accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFiles()">
     <div id="fileList" class="file-list"></div>
     <button class="btn btn-primary" onclick="analyze()">开始分析</button>
     <button class="btn btn-secondary" onclick="clearFiles()">清除</button>
   </div>
 
   <div class="card hidden" id="loadingCard">
-    <p id="loadingText" style="text-align:center;padding:30px">正在解析...</p>
+    <div id="loadingText">正在解析...</div>
   </div>
 
   <div id="resultArea" class="hidden">
@@ -79,10 +81,13 @@
     </div>
   </div>
 
-  <script src="analyzer.js"></script>
+  <!-- 加载 SheetJS -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js" onload="sheetJsLoaded=true" onerror="sheetJsLoaded=false"></script>
+
   <script>
     var selectedFiles = [];
     var analyzer = new CallAnalyzer();
+    var sheetJsLoaded = false;
 
     function handleFiles() {
       var input = document.getElementById('fileInput');
@@ -103,7 +108,7 @@
       document.getElementById('resultArea').className = 'hidden';
     }
 
-    function analyze() {
+    async function analyze() {
       if (selectedFiles.length === 0) {
         alert('请先选择文件');
         return;
@@ -111,58 +116,112 @@
 
       document.getElementById('importCard').className = 'hidden';
       document.getElementById('loadingCard').className = 'card';
+      document.getElementById('loadingText').textContent = '正在解析...';
       
       analyzer.calls = [];
-      
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          var content = e.target.result;
-          var calls = analyzer.parseCSV(content);
-          for (var i = 0; i < calls.length; i++) {
-            analyzer.calls.push(calls[i]);
+      var allCalls = [];
+
+      try {
+        for (var i = 0; i < selectedFiles.length; i++) {
+          var file = selectedFiles[i];
+          var ext = file.name.toLowerCase().split('.').pop();
+          var calls = [];
+          
+          if (ext === 'csv') {
+            // CSV 直接读取
+            calls = await parseCSVFile(file);
+          } else if ((ext === 'xlsx' || ext === 'xls') && typeof XLSX !== 'undefined') {
+            // Excel 使用 SheetJS
+            calls = await parseExcelFile(file);
+          } else if (ext === 'csv' && typeof XLSX !== 'undefined') {
+            // CSV 也可以用 SheetJS
+            calls = await parseExcelFile(file);
+          } else {
+            // 回退到 CSV
+            calls = await parseCSVFile(file);
           }
           
-          // 显示结果
-          var stats = analyzer.getStatistics();
-          var contacts = analyzer.getContactAnalysis();
-          
-          document.getElementById('totalCalls').textContent = stats.totalCalls;
-          document.getElementById('totalDuration').textContent = stats.totalDuration;
-          document.getElementById('avgDuration').textContent = stats.avgDuration;
-          document.getElementById('totalContacts').textContent = contacts.totalContacts;
-          
-          var incoming = stats.callTypes.incoming;
-          var outgoing = stats.callTypes.outgoing;
-          var total = incoming + outgoing;
-          document.getElementById('incomingText').textContent = incoming + ' (' + (total ? Math.round(incoming/total*100) : 0) + '%)';
-          document.getElementById('outgoingText').textContent = outgoing + ' (' + (total ? Math.round(outgoing/total*100) : 0) + '%)';
-          document.getElementById('incomingBar').style.width = total ? incoming/total*100 + '%' : '0%';
-          document.getElementById('outgoingBar').style.width = total ? outgoing/total*100 + '%' : '0%';
-          
-          var html = '';
-          var topContacts = contacts.topContacts.slice(0, 20);
-          for (var i = 0; i < topContacts.length; i++) {
-            var c = topContacts[i];
-            html += '<tr><td>' + (i+1) + '</td><td>' + c.phone + '</td><td>' + c.count + '</td><td>' + c.durationStr + '</td><td>' + (c.lastCall ? c.lastCall.split(' ')[0] : '-') + '</td></tr>';
+          for (var j = 0; j < calls.length; j++) {
+            allCalls.push(calls[j]);
           }
-          document.getElementById('contactTable').innerHTML = html || '<tr><td colspan="5" style="text-align:center">暂无数据</td></tr>';
-          
-          document.getElementById('loadingCard').className = 'hidden';
-          document.getElementById('resultArea').className = '';
-          
-          alert('分析完成！共 ' + analyzer.calls.length + ' 条记录');
-        } catch (err) {
-          document.getElementById('loadingText').textContent = '解析失败: ' + err.message;
         }
-      };
+        
+        analyzer.calls = allCalls;
+        showResults();
+        
+      } catch (e) {
+        document.getElementById('loadingText').textContent = '解析失败: ' + e.message;
+      }
+    }
+
+    function parseCSVFile(file) {
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            var calls = analyzer.parseCSV(e.target.result);
+            resolve(calls);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = function() { reject(new Error('读取文件失败')); };
+        reader.readAsText(file);
+      });
+    }
+
+    function parseExcelFile(file) {
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            var data = new Uint8Array(e.target.result);
+            var workbook = XLSX.read(data, {type: 'array'});
+            var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            var json = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+            var csv = json.map(function(row) {
+              return row.map(function(c) { return String(c || ''); }).join(',');
+            }).join('\n');
+            var calls = analyzer.parseCSV(csv);
+            resolve(calls);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = function() { reject(new Error('读取文件失败')); };
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function showResults() {
+      var stats = analyzer.getStatistics();
+      var contacts = analyzer.getContactAnalysis();
       
-      reader.onerror = function() {
-        document.getElementById('loadingText').textContent = '读取文件失败';
-      };
+      document.getElementById('totalCalls').textContent = stats.totalCalls;
+      document.getElementById('totalDuration').textContent = stats.totalDuration;
+      document.getElementById('avgDuration').textContent = stats.avgDuration;
+      document.getElementById('totalContacts').textContent = contacts.totalContacts;
       
-      // 只读取第一个文件
-      reader.readAsText(selectedFiles[0]);
+      var incoming = stats.callTypes.incoming;
+      var outgoing = stats.callTypes.outgoing;
+      var total = incoming + outgoing;
+      document.getElementById('incomingText').textContent = incoming + ' (' + (total ? Math.round(incoming/total*100) : 0) + '%)';
+      document.getElementById('outgoingText').textContent = outgoing + ' (' + (total ? Math.round(outgoing/total*100) : 0) + '%)';
+      document.getElementById('incomingBar').style.width = total ? incoming/total*100 + '%' : '0%';
+      document.getElementById('outgoingBar').style.width = total ? outgoing/total*100 + '%' : '0%';
+      
+      var html = '';
+      var topContacts = contacts.topContacts.slice(0, 20);
+      for (var i = 0; i < topContacts.length; i++) {
+        var c = topContacts[i];
+        html += '<tr><td>' + (i+1) + '</td><td>' + c.phone + '</td><td>' + c.count + '</td><td>' + c.durationStr + '</td><td>' + (c.lastCall ? c.lastCall.split(' ')[0] : '-') + '</td></tr>';
+      }
+      document.getElementById('contactTable').innerHTML = html || '<tr><td colspan="5" style="text-align:center">暂无数据</td></tr>';
+      
+      document.getElementById('loadingCard').className = 'hidden';
+      document.getElementById('resultArea').className = '';
+      
+      alert('分析完成！共 ' + analyzer.calls.length + ' 条记录');
     }
   </script>
 </body>
